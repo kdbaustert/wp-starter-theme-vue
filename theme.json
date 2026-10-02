@@ -1,0 +1,89 @@
+{
+  "__preprocessed__": "This file is copied to public/build/assets/theme.json at build time. The palette mirrors Bootstrap's $theme-colors in resources/css/_variables.scss; keep the two in step.",
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 3,
+  "settings": {
+    "layout": {
+      "contentSize": "48rem"
+    },
+    "background": {
+      "backgroundImage": true
+    },
+    "color": {
+      "custom": false,
+      "customDuotone": false,
+      "customGradient": false,
+      "defaultDuotone": false,
+      "defaultGradients": false,
+      "defaultPalette": false,
+      "duotone": [],
+      "palette": [
+        {
+          "name": "Primary",
+          "slug": "primary",
+          "color": "#0d6efd"
+        },
+        {
+          "name": "Secondary",
+          "slug": "secondary",
+          "color": "#6c757d"
+        },
+        {
+          "name": "Success",
+          "slug": "success",
+          "color": "#198754"
+        },
+        {
+          "name": "Info",
+          "slug": "info",
+          "color": "#0dcaf0"
+        },
+        {
+          "name": "Warning",
+          "slug": "warning",
+          "color": "#ffc107"
+        },
+        {
+          "name": "Danger",
+          "slug": "danger",
+          "color": "#dc3545"
+        },
+        {
+          "name": "Light",
+          "slug": "light",
+          "color": "#f8f9fa"
+        },
+        {
+          "name": "Dark",
+          "slug": "dark",
+          "color": "#212529"
+        },
+        {
+          "name": "White",
+          "slug": "white",
+          "color": "#ffffff"
+        },
+        {
+          "name": "Black",
+          "slug": "black",
+          "color": "#000000"
+        }
+      ]
+    },
+    "custom": {
+      "spacing": {},
+      "typography": {
+        "font-size": {},
+        "line-height": {}
+      }
+    },
+    "spacing": {
+      "padding": true,
+      "units": ["px", "%", "em", "rem", "vw", "vh"]
+    },
+    "typography": {
+      "defaultFontSizes": false,
+      "customFontSize": false
+    }
+  }
+}

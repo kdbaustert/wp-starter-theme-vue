@@ -1,0 +1,19 @@
+// Loaded into the block editor through block_editor_settings_all (see
+// app/setup.php). Only typography-level styles go in here: the full
+// stylesheet would restyle the editor chrome along with the content.
+@import "config";
+@import "bootstrap/scss/root";
+
+.editor-styles-wrapper {
+  font-family: $font-family-base;
+  color: $body-color;
+
+  // Reboot's body and :root rules match nothing once nested here, but its
+  // heading rules are what type's .h1-.h6 classes @extend.
+  @import "bootstrap/scss/reboot";
+  @import "bootstrap/scss/type";
+  @import "bootstrap/scss/images";
+  @import "bootstrap/scss/tables";
+  @import "bootstrap/scss/buttons";
+  @import "bootstrap/scss/alert";
+}

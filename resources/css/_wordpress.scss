@@ -1,0 +1,26 @@
+// Classes WordPress core writes into post content and its own markup.
+
+.screen-reader-text {
+  @include visually-hidden();
+}
+
+.alignleft {
+  float: left;
+  margin: 0 $spacer $spacer 0;
+}
+
+.alignright {
+  float: right;
+  margin: 0 0 $spacer $spacer;
+}
+
+.aligncenter {
+  display: block;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.wp-caption-text,
+.wp-element-caption {
+  @extend .figure-caption;
+}

@@ -1,0 +1,10 @@
+// Bootstrap configuration only: emits no CSS, so both app.scss and
+// editor.scss can import it. Functions load first so the overrides in
+// _variables.scss can call them (tint-color, shade-color, map-merge, ...).
+@import "bootstrap/scss/functions";
+@import "variables";
+@import "bootstrap/scss/variables";
+@import "bootstrap/scss/variables-dark";
+@import "bootstrap/scss/maps";
+@import "bootstrap/scss/mixins";
+@import "bootstrap/scss/utilities";
