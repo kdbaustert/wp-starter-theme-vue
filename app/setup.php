@@ -161,3 +161,102 @@ add_action('widgets_init', function () {
         'id' => 'sidebar-footer',
     ] + $config);
 });
+
+/**
+ * Get the Google Analytics Measurement ID.
+ *
+ * A non-empty GA_MEASUREMENT_ID constant wins over the Settings > General
+ * field, so each environment can set its own ID in wp-config.php or .env.
+ *
+ * @return string
+ */
+function google_analytics_id(): string
+{
+    if (defined('GA_MEASUREMENT_ID') && GA_MEASUREMENT_ID) {
+        return (string) GA_MEASUREMENT_ID;
+    }
+
+    return (string) get_option('ga_measurement_id', '');
+}
+
+/**
+ * Add the Google Analytics Measurement ID field to Settings > General.
+ *
+ * @return void
+ */
+add_action('admin_init', function () {
+    register_setting('general', 'ga_measurement_id', [
+        'type' => 'string',
+        'default' => '',
+        'sanitize_callback' => function ($value) {
+            // The field is disabled while the constant is set, so it isn't
+            // submitted. Keep the stored ID for when the constant goes away.
+            if ($value === null) {
+                return get_option('ga_measurement_id', '');
+            }
+
+            $value = strtoupper(trim((string) $value));
+
+            if ($value === '' || preg_match('/^G-[A-Z0-9]+$/', $value)) {
+                return $value;
+            }
+
+            add_settings_error(
+                'ga_measurement_id',
+                'invalid_ga_measurement_id',
+                __('The Google Analytics Measurement ID should look like G-XXXXXXXXXX.', 'sage')
+            );
+
+            return get_option('ga_measurement_id', '');
+        },
+    ]);
+
+    add_settings_field('ga_measurement_id', __('Google Analytics ID', 'sage'), function () {
+        $locked = defined('GA_MEASUREMENT_ID') && GA_MEASUREMENT_ID;
+
+        printf(
+            '<input name="ga_measurement_id" id="ga_measurement_id" type="text" class="regular-text code"'
+            .' value="%s" placeholder="G-XXXXXXXXXX" %s>',
+            esc_attr(google_analytics_id()),
+            disabled($locked, true, false)
+        );
+
+        echo '<p class="description">'.esc_html($locked
+            ? __('Set by the GA_MEASUREMENT_ID constant.', 'sage')
+            : __('The tag only loads when the environment type is production.', 'sage')
+        ).'</p>';
+    }, 'general', 'default', ['label_for' => 'ga_measurement_id']);
+});
+
+/**
+ * Load the Google Analytics tag on production sites.
+ *
+ * wp_get_environment_type() reports production unless WP_ENVIRONMENT_TYPE
+ * says otherwise, so local and staging sites need it set to stay out.
+ *
+ * @link https://developers.google.com/tag-platform/gtagjs/install
+ *
+ * @return void
+ */
+add_action('wp_enqueue_scripts', function () {
+    $id = google_analytics_id();
+
+    if (! $id || wp_get_environment_type() !== 'production') {
+        return;
+    }
+
+    wp_enqueue_script(
+        'google-analytics',
+        'https://www.googletagmanager.com/gtag/js?id='.rawurlencode($id),
+        [],
+        null,
+        ['strategy' => 'async']
+    );
+
+    wp_add_inline_script('google-analytics', implode("\n", [
+        'window.dataLayer = window.dataLayer || [];',
+        'function gtag(){dataLayer.push(arguments);}',
+        "gtag('js', new Date());",
+        sprintf("gtag('config', %s);", wp_json_encode($id)),
+    ]), 'before');
+});

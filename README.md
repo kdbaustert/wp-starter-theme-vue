@@ -14,6 +14,7 @@ A WordPress starter theme built on [Sage 11](https://roots.io/sage/), with Boots
 - **A rename script.** It sets the theme name, slug, text domain, block namespace and package names in one go.
 - **A build that doesn't care where it lives.** Asset URLs are relative, so the same build works under Bedrock (`app/themes`) or a standard install (`wp-content/themes`), in any folder name.
 - **Block editor styles.** Bootstrap typography, buttons, tables and alerts inside the editor, and a colour palette that matches Bootstrap's theme colours.
+- **Google Analytics.** Paste a Measurement ID under Settings → General or set it as a constant, and the tag loads on production only.
 
 ## Requirements
 
@@ -125,6 +126,21 @@ Activate WooCommerce and the shop renders inside the theme's layout. This is han
 
 The primary menu renders as a Bootstrap navbar that collapses on small screens. It shows one level: dropdown submenus would need a custom nav walker.
 
+### Google Analytics
+
+Add your GA4 Measurement ID (`G-XXXXXXXXXX`) in one of two places:
+
+- **In the admin,** under Settings → General → Google Analytics ID.
+- **As a constant,** which wins over the admin field and locks it. In `wp-config.php`:
+
+  ```php
+  define('GA_MEASUREMENT_ID', 'G-XXXXXXXXXX');
+  ```
+
+  On Bedrock, add `Config::define('GA_MEASUREMENT_ID', env('GA_MEASUREMENT_ID'));` to `config/application.php` and set the value in `.env`. Leaving it empty falls back to the admin field.
+
+The tag only loads when `wp_get_environment_type()` is `production`. WordPress reports production when nothing says otherwise, so set `WP_ENVIRONMENT_TYPE` to `local` or `staging` on other copies of the site. Bedrock does this for you from `WP_ENV`.
+
 ### Translations
 
 Strings use the theme's text domain, which the rename script sets. With [WP-CLI](https://wp-cli.org/) installed:
@@ -140,7 +156,7 @@ npm run translate:compile   # build the .mo and JSON files
 app/
   content.php            post types, taxonomies, block registration
   filters.php            WordPress filters, including navbar classes
-  setup.php              theme supports, menus, sidebars, editor assets
+  setup.php              theme supports, menus, sidebars, editor assets, analytics
   Providers/             Acorn service providers
   View/Composers/        data passed to Blade views
 bin/rename.js            the rebrand script
