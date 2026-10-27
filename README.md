@@ -130,7 +130,7 @@ The primary menu renders as a Bootstrap navbar that collapses on small screens. 
 
 Add your GA4 Measurement ID (`G-XXXXXXXXXX`) in one of two places:
 
-- **In the admin,** under Appearance → Google Analytics. The same page has a switch that turns the tag off and the environment types it loads on.
+- **In the admin,** under Appearance → Google Analytics. The same page has a switch that turns the tag off, the environment types it loads on, and an option to leave logged-in authors, editors and administrators untracked.
 - **As a constant,** which wins over the admin field and locks it. In `wp-config.php`:
 
   ```php

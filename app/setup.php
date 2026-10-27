@@ -180,14 +180,29 @@ function google_analytics_id(): string
 }
 
 /**
- * Whether the Google Analytics tag should load in this environment.
+ * Whether the Google Analytics tag should load in this environment and for
+ * the current visitor.
  *
  * @return bool
  */
 function google_analytics_loads(): bool
 {
     return get_option('ga_enabled')
-        && in_array(wp_get_environment_type(), (array) get_option('ga_environments'), true);
+        && in_array(wp_get_environment_type(), (array) get_option('ga_environments'), true)
+        && ! google_analytics_skips_current_user();
+}
+
+/**
+ * Whether the current visitor is staff and the page says not to track staff.
+ *
+ * Contributors can edit posts too, but publish_posts leaves them tracked so
+ * the rule matches the authors, editors and administrators the page names.
+ *
+ * @return bool
+ */
+function google_analytics_skips_current_user(): bool
+{
+    return get_option('ga_exclude_staff') && current_user_can('publish_posts');
 }
 
 /**
@@ -267,6 +282,12 @@ add_action('init', function () {
             array_intersect((array) $value, array_keys(google_analytics_environment_choices()))
         ),
     ]);
+
+    register_setting('google_analytics', 'ga_exclude_staff', [
+        'type' => 'boolean',
+        'default' => false,
+        'sanitize_callback' => fn ($value) => (bool) $value,
+    ]);
 });
 
 /**
@@ -325,6 +346,14 @@ add_action('admin_init', function () {
             echo '<p class="description">'.esc_html__('Set by the GA_MEASUREMENT_ID constant.', 'sage').'</p>';
         }
     }, 'google-analytics', 'google_analytics', ['label_for' => 'ga_measurement_id']);
+
+    add_settings_field('ga_exclude_staff', __('Logged-in staff', 'sage'), function () {
+        printf(
+            '<label><input name="ga_exclude_staff" id="ga_exclude_staff" type="checkbox" value="1" %s> %s</label>',
+            checked(get_option('ga_exclude_staff'), true, false),
+            esc_html__("Don't track users who can edit posts (authors, editors and administrators)", 'sage')
+        );
+    }, 'google-analytics', 'google_analytics');
 
     add_settings_field('ga_environments', __('Environments', 'sage'), function () {
         $selected = (array) get_option('ga_environments');
