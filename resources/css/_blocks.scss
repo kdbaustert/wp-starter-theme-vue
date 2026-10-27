@@ -1,0 +1,61 @@
+// Map core blocks onto Bootstrap components. Imported by app.scss and, inside
+// .editor-styles-wrapper, by editor.scss, so the editor matches the site.
+
+.wp-block-button__link {
+  @extend .btn;
+  @extend .btn-primary;
+}
+
+.wp-block-button.is-style-outline > .wp-block-button__link {
+  @extend .btn-outline-primary;
+
+  // The link also has .btn-primary's blue --bs-btn-bg, which
+  // .btn-outline-primary doesn't reset.
+  --bs-btn-bg: transparent;
+}
+
+.wp-block-quote {
+  @extend .blockquote;
+}
+
+.wp-block-list.is-style-unstyled {
+  @extend .list-unstyled;
+}
+
+.wp-block-table {
+  table {
+    @extend .table;
+  }
+
+  // Core gives every cell a full 1px border and the header and footer a 3px
+  // one. Hand the borders back to Bootstrap's bottom-only rows.
+  td,
+  th {
+    border-width: 0;
+    border-color: inherit;
+  }
+
+  thead,
+  tfoot {
+    border-width: 0;
+  }
+
+  // Core's stripes are a fixed #f0f0f0 row background, which stays light in
+  // dark mode. Bootstrap's track the colour mode.
+  &.is-style-stripes {
+    border-bottom: 0;
+
+    table {
+      @extend .table-striped;
+    }
+
+    td,
+    th {
+      border-color: inherit;
+    }
+
+    tbody tr:nth-child(odd) {
+      background-color: transparent;
+    }
+  }
+}

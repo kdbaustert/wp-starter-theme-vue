@@ -85,7 +85,30 @@ add_action('after_setup_theme', function () {
      */
     register_nav_menus([
         'primary_navigation' => __('Primary Navigation', 'sage'),
+        'footer_navigation' => __('Footer Navigation', 'sage'),
     ]);
+
+    /**
+     * Enable a logo under Appearance > Customize > Site Identity. It replaces
+     * the site name in the navbar.
+     *
+     * @link https://developer.wordpress.org/themes/functionality/custom-logo/
+     */
+    add_theme_support('custom-logo', [
+        'height' => 80,
+        'width' => 240,
+        'flex-height' => true,
+        'flex-width' => true,
+    ]);
+
+    /**
+     * Register image sizes for cards and full-width heroes. Images uploaded
+     * before a size existed need `wp media regenerate` to get it.
+     *
+     * @link https://developer.wordpress.org/reference/functions/add_image_size/
+     */
+    add_image_size('card', 720, 405, true);
+    add_image_size('hero', 1920, 720, true);
 
     /**
      * Disable the default block patterns.
@@ -137,6 +160,31 @@ add_action('after_setup_theme', function () {
      */
     add_theme_support('customize-selective-refresh-widgets');
 }, 20);
+
+/**
+ * Offer the theme's image sizes in the block editor's size picker.
+ *
+ * @return array
+ */
+add_filter('image_size_names_choose', function ($sizes) {
+    return $sizes + [
+        'card' => __('Card', 'sage'),
+        'hero' => __('Hero', 'sage'),
+    ];
+});
+
+/**
+ * Add an Unstyled style to the List block, Bootstrap's .list-unstyled. The
+ * CSS is in resources/css/_blocks.scss.
+ *
+ * @return void
+ */
+add_action('init', function () {
+    register_block_style('core/list', [
+        'name' => 'unstyled',
+        'label' => __('Unstyled', 'sage'),
+    ]);
+});
 
 /**
  * Register the theme sidebars.
@@ -412,3 +460,188 @@ add_action('wp_enqueue_scripts', function () {
         sprintf("gtag('config', %s);", wp_json_encode($id)),
     ]), 'before');
 });
+
+/**
+ * The social networks Appearance > Site Settings has a profile URL field
+ * for, keyed by the option key, in the order the footer lists them.
+ *
+ * @return array
+ */
+function social_networks(): array
+{
+    return [
+        'facebook' => __('Facebook', 'sage'),
+        'instagram' => __('Instagram', 'sage'),
+        'linkedin' => __('LinkedIn', 'sage'),
+        'x' => __('X', 'sage'),
+        'youtube' => __('YouTube', 'sage'),
+        'tiktok' => __('TikTok', 'sage'),
+    ];
+}
+
+/**
+ * Pull the token out of a Search Console verification value. Accepts the
+ * token on its own or the whole <meta> tag Search Console hands out.
+ *
+ * @param  string  $value
+ * @return string
+ */
+function search_console_token(string $value): string
+{
+    if (preg_match('/content=["\']([^"\']*)["\']/', $value, $matches)) {
+        $value = $matches[1];
+    }
+
+    return sanitize_text_field($value);
+}
+
+/**
+ * Register the site settings. Registered on init so their defaults also
+ * apply on the front end.
+ *
+ * @return void
+ */
+add_action('init', function () {
+    register_setting('site_settings', 'site_social_links', [
+        'type' => 'array',
+        'default' => [],
+        'sanitize_callback' => fn ($value) => array_filter(array_map(
+            'esc_url_raw',
+            array_intersect_key((array) $value, social_networks())
+        )),
+    ]);
+
+    register_setting('site_settings', 'site_footer_text', [
+        'type' => 'string',
+        'default' => '',
+        'sanitize_callback' => 'sanitize_text_field',
+    ]);
+
+    register_setting('site_settings', 'site_search_console', [
+        'type' => 'string',
+        'default' => '',
+        'sanitize_callback' => fn ($value) => search_console_token((string) $value),
+    ]);
+
+    register_setting('site_settings', 'site_color_modes', [
+        'type' => 'boolean',
+        'default' => true,
+        'sanitize_callback' => fn ($value) => (bool) $value,
+    ]);
+});
+
+/**
+ * Add the Appearance > Site Settings page.
+ *
+ * @return void
+ */
+add_action('admin_menu', function () {
+    add_theme_page(
+        __('Site Settings', 'sage'),
+        __('Site Settings', 'sage'),
+        'manage_options',
+        'site-settings',
+        function () {
+            echo '<div class="wrap"><h1>'.esc_html(get_admin_page_title()).'</h1>';
+
+            settings_errors();
+
+            echo '<form action="options.php" method="post">';
+            settings_fields('site_settings');
+            do_settings_sections('site-settings');
+            submit_button();
+            echo '</form></div>';
+        }
+    );
+});
+
+/**
+ * Add the fields to the Appearance > Site Settings page.
+ *
+ * @return void
+ */
+add_action('admin_init', function () {
+    add_settings_section('site_settings_footer', __('Footer', 'sage'), '', 'site-settings');
+    add_settings_section('site_settings_social', __('Social profiles', 'sage'), function () {
+        echo '<p>'.esc_html__('Profiles with a URL are linked in the footer.', 'sage').'</p>';
+    }, 'site-settings');
+    add_settings_section('site_settings_head', __('Site head', 'sage'), '', 'site-settings');
+
+    add_settings_field('site_footer_text', __('Footer text', 'sage'), function () {
+        printf(
+            '<input name="site_footer_text" id="site_footer_text" type="text" class="large-text" value="%s" placeholder="%s">'
+            .'<p class="description">%s</p>',
+            esc_attr(get_option('site_footer_text')),
+            esc_attr('© {year} '.get_bloginfo('name')),
+            esc_html__('{year} becomes the current year. Leave it empty for the placeholder text.', 'sage')
+        );
+    }, 'site-settings', 'site_settings_footer', ['label_for' => 'site_footer_text']);
+
+    $links = (array) get_option('site_social_links');
+
+    foreach (social_networks() as $network => $label) {
+        add_settings_field("site_social_links_{$network}", $label, function () use ($network, $links) {
+            printf(
+                '<input name="site_social_links[%1$s]" id="site_social_links_%1$s" type="url" class="regular-text code" value="%2$s" placeholder="https://">',
+                esc_attr($network),
+                esc_attr($links[$network] ?? '')
+            );
+        }, 'site-settings', 'site_settings_social', ['label_for' => "site_social_links_{$network}"]);
+    }
+
+    add_settings_field('site_search_console', __('Search Console', 'sage'), function () {
+        printf(
+            '<input name="site_search_console" id="site_search_console" type="text" class="regular-text code" value="%s">'
+            .'<p class="description">%s</p>',
+            esc_attr(get_option('site_search_console')),
+            esc_html__('The HTML tag verification code. Pasting the whole <meta> tag works too.', 'sage')
+        );
+    }, 'site-settings', 'site_settings_head', ['label_for' => 'site_search_console']);
+
+    add_settings_field('site_color_modes', __('Colour modes', 'sage'), function () {
+        printf(
+            '<label><input name="site_color_modes" id="site_color_modes" type="checkbox" value="1" %s> %s</label>',
+            checked(get_option('site_color_modes'), true, false),
+            esc_html__('Let visitors switch between light and dark mode', 'sage')
+        );
+    }, 'site-settings', 'site_settings_head');
+});
+
+/**
+ * Print the Search Console verification tag.
+ *
+ * @link https://support.google.com/webmasters/answer/9008080
+ *
+ * @return void
+ */
+add_action('wp_head', function () {
+    $token = get_option('site_search_console');
+
+    if ($token) {
+        printf('<meta name="google-site-verification" content="%s">'."\n", esc_attr($token));
+    }
+}, 1);
+
+/**
+ * Set Bootstrap's colour mode before the page paints, so a dark mode visitor
+ * doesn't see a flash of the light theme. resources/js/color-mode.js handles
+ * the switch and reads the same localStorage key.
+ *
+ * @link https://getbootstrap.com/docs/5.3/customize/color-modes/
+ *
+ * @return void
+ */
+add_action('wp_head', function () {
+    if (! get_option('site_color_modes')) {
+        return;
+    }
+
+    wp_print_inline_script_tag(<<<'JS'
+    (() => {
+      let mode = 'auto';
+      try { mode = localStorage.getItem('color-mode') || 'auto'; } catch (e) {}
+      const dark = mode === 'dark' || (mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
+    })();
+    JS);
+}, 1);

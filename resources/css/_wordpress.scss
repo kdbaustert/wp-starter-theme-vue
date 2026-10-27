@@ -20,6 +20,11 @@
   margin-left: auto;
 }
 
+.custom-logo {
+  width: auto;
+  max-height: 2.5rem;
+}
+
 .wp-caption-text,
 .wp-element-caption {
   @extend .figure-caption;

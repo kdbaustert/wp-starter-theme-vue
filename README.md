@@ -15,6 +15,9 @@ A WordPress starter theme built on [Sage 11](https://roots.io/sage/), with Boots
 - **A build that doesn't care where it lives.** Asset URLs are relative, so the same build works under Bedrock (`app/themes`) or a standard install (`wp-content/themes`), in any folder name.
 - **Block editor styles.** Bootstrap typography, buttons, tables and alerts inside the editor, and a colour palette that matches Bootstrap's theme colours.
 - **Google Analytics.** Paste a Measurement ID under Appearance → Google Analytics or set it as a constant, and pick the environments the tag loads on.
+- **Site Settings.** Social profile links, the footer line and the Search Console verification code under Appearance → Site Settings.
+- **Light and dark mode.** A switch in the navbar uses Bootstrap's colour modes and follows the visitor's system setting until they pick one.
+- **A tidier head.** No emoji polyfill, generator tag or RSD link, and XML-RPC is off.
 
 ## Requirements
 
@@ -68,7 +71,7 @@ A WordPress starter theme built on [Sage 11](https://roots.io/sage/), with Boots
    npm run build    # production build into public/build
    ```
 
-6. **Activate the theme** under Appearance → Themes, and assign a menu to **Primary Navigation** under Appearance → Menus.
+6. **Activate the theme** under Appearance → Themes, assign menus to **Primary Navigation** and **Footer Navigation** under Appearance → Menus, and upload a logo under Appearance → Customize → Site Identity.
 
 `public/build` is gitignored, so run `npm run build` as part of your deploy.
 
@@ -80,6 +83,8 @@ A WordPress starter theme built on [Sage 11](https://roots.io/sage/), with Boots
 - **Drop components you don't use.** Each Sass component is one line in `resources/css/app.scss`. Each JavaScript plugin is one line in `resources/js/bootstrap.js`, and Popper is only bundled while dropdown, tooltip or popover is listed.
 - **Use a plugin from code.** Import its class: `import { Modal } from '@scripts/bootstrap'`. Markup with `data-bs-*` attributes works without any code.
 - **WordPress classes.** Core output such as `alignleft`, `screen-reader-text` and image captions is styled in `resources/css/_wordpress.scss`.
+- **Core blocks.** `resources/css/_blocks.scss` maps core blocks onto Bootstrap, in the editor and on the site: Button is `.btn-primary` and its Outline style `.btn-outline-primary`, Table is `.table` and its Stripes style `.table-striped`, Quote is `.blockquote`, and List gets an Unstyled style.
+- **Font sizes and spacing.** The editor's font size and spacing pickers in `theme.json` follow Bootstrap's type scale and `$spacers` 1 to 5. Change them alongside the Sass variables.
 
 ### Vue islands
 
@@ -124,7 +129,30 @@ Activate WooCommerce and the shop renders inside the theme's layout. This is han
 
 ### Menus
 
-The primary menu renders as a Bootstrap navbar that collapses on small screens. It shows one level: dropdown submenus would need a custom nav walker.
+The primary menu renders as a Bootstrap navbar that collapses on small screens. It shows one level: dropdown submenus would need a custom nav walker. The footer menu renders as a row of plain links, also one level.
+
+The navbar shows the logo from Appearance → Customize → Site Identity, or the site name when there isn't one.
+
+### Images
+
+`app/setup.php` registers two cropped sizes, `card` (720×405) and `hero` (1920×720), and adds them to the editor's size picker. Images uploaded before a size existed don't have it until you run `wp media regenerate`.
+
+### Site Settings
+
+Appearance → Site Settings holds:
+
+- **Footer text.** `{year}` becomes the current year. Left empty, it's `© {year}` and the site name.
+- **Social profiles.** Every network with a URL gets a link in the footer. The list is `social_networks()` in `app/setup.php`.
+- **Search Console.** Paste the HTML tag verification code, or the whole `<meta>` tag.
+- **Colour modes.** Turns the light and dark switch on or off.
+
+### Light and dark mode
+
+The switch in the navbar sets Bootstrap's `data-bs-theme` attribute on `<html>`. Visitors start on Auto, which follows their system setting, and a choice is remembered in `localStorage`. An inline script in the head applies it before the page paints, so there's no flash of the light theme. The switch lives in `resources/js/color-mode.js`. Anything styled with Bootstrap's CSS variables and `-body` utilities follows the mode; hard-coded colours don't.
+
+### Head cleanup
+
+`app/filters.php` removes the emoji polyfill, the generator tag and the RSD link from the front end, and turns XML-RPC off. Jetpack and the old WordPress mobile apps need XML-RPC, so delete the `xmlrpc_methods` and `wp_headers` filters if a site uses either.
 
 ### Google Analytics
 
@@ -155,8 +183,8 @@ npm run translate:compile   # build the .mo and JSON files
 ```
 app/
   content.php            post types, taxonomies, block registration
-  filters.php            WordPress filters, including navbar classes
-  setup.php              theme supports, menus, sidebars, editor assets, analytics
+  filters.php            WordPress filters, including menu classes and head cleanup
+  setup.php              theme supports, menus, image sizes, sidebars, editor assets, analytics, site settings
   Providers/             Acorn service providers
   View/Composers/        data passed to Blade views
 bin/rename.js            the rebrand script
@@ -166,12 +194,13 @@ resources/
   js/
     app.js               front-end entry
     bootstrap.js         Bootstrap plugin list
+    color-mode.js        light and dark mode switch
     islands.js           Vue island loader
     editor.js            block editor entry
     components/          Vue single-file components
   views/                 Blade templates
     woocommerce/         shop templates
-theme.json               block editor settings and palette
+theme.json               block editor settings, palette, font sizes and spacing
 vite.config.js           build config and feature switches
 ```
 

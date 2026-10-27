@@ -1,4 +1,7 @@
 import './bootstrap'
+import { initColorModes } from './color-mode'
+
+initColorModes()
 
 // __THEME_VUE__ is set from the features switch in vite.config.js. Vue is
 // only downloaded on pages that contain an island.

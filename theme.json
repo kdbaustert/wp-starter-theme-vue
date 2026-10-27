@@ -1,5 +1,5 @@
 {
-  "__preprocessed__": "This file is copied to public/build/assets/theme.json at build time. The palette mirrors Bootstrap's $theme-colors in resources/css/_variables.scss; keep the two in step.",
+  "__preprocessed__": "This file is copied to public/build/assets/theme.json at build time. The palette mirrors Bootstrap's $theme-colors in resources/css/_variables.scss, the font sizes follow $font-size-base and the heading scale, and the spacing sizes match $spacers 1 to 5; keep them in step.",
   "$schema": "https://schemas.wp.org/trunk/theme.json",
   "version": 3,
   "settings": {
@@ -79,11 +79,71 @@
     },
     "spacing": {
       "padding": true,
-      "units": ["px", "%", "em", "rem", "vw", "vh"]
+      "units": ["px", "%", "em", "rem", "vw", "vh"],
+      "defaultSpacingSizes": false,
+      "spacingSizes": [
+        {
+          "name": "1",
+          "slug": "1",
+          "size": "0.25rem"
+        },
+        {
+          "name": "2",
+          "slug": "2",
+          "size": "0.5rem"
+        },
+        {
+          "name": "3",
+          "slug": "3",
+          "size": "1rem"
+        },
+        {
+          "name": "4",
+          "slug": "4",
+          "size": "1.5rem"
+        },
+        {
+          "name": "5",
+          "slug": "5",
+          "size": "3rem"
+        }
+      ]
     },
     "typography": {
       "defaultFontSizes": false,
-      "customFontSize": false
+      "customFontSize": false,
+      "fontSizes": [
+        {
+          "name": "Small",
+          "slug": "small",
+          "size": "0.875rem"
+        },
+        {
+          "name": "Normal",
+          "slug": "normal",
+          "size": "1rem"
+        },
+        {
+          "name": "Medium",
+          "slug": "medium",
+          "size": "1.25rem"
+        },
+        {
+          "name": "Large",
+          "slug": "large",
+          "size": "1.5rem"
+        },
+        {
+          "name": "Extra large",
+          "slug": "x-large",
+          "size": "2rem"
+        },
+        {
+          "name": "Huge",
+          "slug": "xx-large",
+          "size": "2.5rem"
+        }
+      ]
     }
   }
 }
