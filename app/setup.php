@@ -163,19 +163,6 @@ add_action('widgets_init', function () {
 });
 
 /**
- * Whether the Google Analytics settings live on an ACF options page.
- *
- * Options pages need ACF Pro. Without it, the Measurement ID falls back to
- * the Settings > General field and the tag loads on production only.
- *
- * @return bool
- */
-function google_analytics_uses_acf(): bool
-{
-    return function_exists('acf_add_options_page') && function_exists('acf_add_local_field_group');
-}
-
-/**
  * Get the Google Analytics Measurement ID.
  *
  * A non-empty GA_MEASUREMENT_ID constant wins over the admin field, so each
@@ -189,12 +176,7 @@ function google_analytics_id(): string
         return (string) GA_MEASUREMENT_ID;
     }
 
-    if (google_analytics_uses_acf()) {
-        // Field keys, not names, so the defaults apply before the page is saved.
-        return (string) get_field('field_ga_measurement_id', 'option');
-    }
-
-    return (string) get_option('ga_measurement_id', '');
+    return (string) get_option('ga_measurement_id');
 }
 
 /**
@@ -204,14 +186,24 @@ function google_analytics_id(): string
  */
 function google_analytics_loads(): bool
 {
-    if (! google_analytics_uses_acf()) {
-        return wp_get_environment_type() === 'production';
-    }
+    return get_option('ga_enabled')
+        && in_array(wp_get_environment_type(), (array) get_option('ga_environments'), true);
+}
 
-    $environments = (array) get_field('field_ga_environments', 'option');
-
-    return get_field('field_ga_enabled', 'option')
-        && in_array(wp_get_environment_type(), $environments, true);
+/**
+ * The environment types the tag can load on, keyed by the value
+ * wp_get_environment_type() returns.
+ *
+ * @return array
+ */
+function google_analytics_environment_choices(): array
+{
+    return [
+        'production' => __('Production', 'sage'),
+        'staging' => __('Staging', 'sage'),
+        'development' => __('Development', 'sage'),
+        'local' => __('Local', 'sage'),
+    ];
 }
 
 /**
@@ -227,16 +219,22 @@ function google_analytics_id_is_valid(string $id): bool
 }
 
 /**
- * Add the Google Analytics Measurement ID field to Settings > General.
+ * Register the Google Analytics settings.
+ *
+ * Registered on init rather than admin_init so their defaults also apply on
+ * the front end, where the tag reads them.
  *
  * @return void
  */
-add_action('admin_init', function () {
-    if (google_analytics_uses_acf()) {
-        return;
-    }
+add_action('init', function () {
+    register_setting('google_analytics', 'ga_enabled', [
+        'type' => 'boolean',
+        'default' => true,
+        // An unticked checkbox isn't submitted, so it arrives as null.
+        'sanitize_callback' => fn ($value) => (bool) $value,
+    ]);
 
-    register_setting('general', 'ga_measurement_id', [
+    register_setting('google_analytics', 'ga_measurement_id', [
         'type' => 'string',
         'default' => '',
         'sanitize_callback' => function ($value) {
@@ -262,7 +260,58 @@ add_action('admin_init', function () {
         },
     ]);
 
-    add_settings_field('ga_measurement_id', __('Google Analytics ID', 'sage'), function () {
+    register_setting('google_analytics', 'ga_environments', [
+        'type' => 'array',
+        'default' => ['production'],
+        'sanitize_callback' => fn ($value) => array_values(
+            array_intersect((array) $value, array_keys(google_analytics_environment_choices()))
+        ),
+    ]);
+});
+
+/**
+ * Add the Appearance > Google Analytics page.
+ *
+ * @return void
+ */
+add_action('admin_menu', function () {
+    add_theme_page(
+        __('Google Analytics', 'sage'),
+        __('Google Analytics', 'sage'),
+        'manage_options',
+        'google-analytics',
+        function () {
+            echo '<div class="wrap"><h1>'.esc_html(get_admin_page_title()).'</h1>';
+
+            // Only pages under Settings show saved and error notices on their own.
+            settings_errors();
+
+            echo '<form action="options.php" method="post">';
+            settings_fields('google_analytics');
+            do_settings_sections('google-analytics');
+            submit_button();
+            echo '</form></div>';
+        }
+    );
+});
+
+/**
+ * Add the fields to the Appearance > Google Analytics page.
+ *
+ * @return void
+ */
+add_action('admin_init', function () {
+    add_settings_section('google_analytics', '', '', 'google-analytics');
+
+    add_settings_field('ga_enabled', __('Load the tag', 'sage'), function () {
+        printf(
+            '<label><input name="ga_enabled" id="ga_enabled" type="checkbox" value="1" %s> %s</label>',
+            checked(get_option('ga_enabled'), true, false),
+            esc_html__('Add the Google Analytics tag to the site', 'sage')
+        );
+    }, 'google-analytics', 'google_analytics');
+
+    add_settings_field('ga_measurement_id', __('Measurement ID', 'sage'), function () {
         $locked = defined('GA_MEASUREMENT_ID') && GA_MEASUREMENT_ID;
 
         printf(
@@ -272,120 +321,34 @@ add_action('admin_init', function () {
             disabled($locked, true, false)
         );
 
-        echo '<p class="description">'.esc_html($locked
-            ? __('Set by the GA_MEASUREMENT_ID constant.', 'sage')
-            : __('The tag only loads when the environment type is production.', 'sage')
-        ).'</p>';
-    }, 'general', 'default', ['label_for' => 'ga_measurement_id']);
-});
+        if ($locked) {
+            echo '<p class="description">'.esc_html__('Set by the GA_MEASUREMENT_ID constant.', 'sage').'</p>';
+        }
+    }, 'google-analytics', 'google_analytics', ['label_for' => 'ga_measurement_id']);
 
-/**
- * Register the Settings > Google Analytics options page and its fields.
- *
- * @link https://www.advancedcustomfields.com/resources/options-page/
- *
- * @return void
- */
-add_action('acf/init', function () {
-    if (! google_analytics_uses_acf()) {
-        return;
-    }
+    add_settings_field('ga_environments', __('Environments', 'sage'), function () {
+        $selected = (array) get_option('ga_environments');
 
-    acf_add_options_page([
-        'page_title' => __('Google Analytics', 'sage'),
-        'menu_slug' => 'google-analytics',
-        'parent_slug' => 'options-general.php',
-        'capability' => 'manage_options',
-        'autoload' => true,
-    ]);
+        echo '<fieldset><legend class="screen-reader-text">'.esc_html__('Environments', 'sage').'</legend>';
 
-    acf_add_local_field_group([
-        'key' => 'group_google_analytics',
-        'title' => __('Google Analytics', 'sage'),
-        'fields' => [
-            [
-                'key' => 'field_ga_enabled',
-                'name' => 'ga_enabled',
-                'label' => __('Load the tag', 'sage'),
-                'type' => 'true_false',
-                'ui' => 1,
-                'default_value' => 1,
-            ],
-            [
-                'key' => 'field_ga_measurement_id',
-                'name' => 'ga_measurement_id',
-                'label' => __('Measurement ID', 'sage'),
-                'type' => 'text',
-                'placeholder' => 'G-XXXXXXXXXX',
-            ],
-            [
-                'key' => 'field_ga_environments',
-                'name' => 'ga_environments',
-                'label' => __('Environments', 'sage'),
-                'instructions' => __('The tag only loads when the environment type is one of these.', 'sage'),
-                'type' => 'checkbox',
-                'choices' => [
-                    'production' => __('Production', 'sage'),
-                    'staging' => __('Staging', 'sage'),
-                    'development' => __('Development', 'sage'),
-                    'local' => __('Local', 'sage'),
-                ],
-                'default_value' => ['production'],
-                'return_format' => 'value',
-            ],
-        ],
-        'location' => [
-            [
-                [
-                    'param' => 'options_page',
-                    'operator' => '==',
-                    'value' => 'google-analytics',
-                ],
-            ],
-        ],
-    ]);
-});
+        foreach (google_analytics_environment_choices() as $value => $label) {
+            printf(
+                '<label><input name="ga_environments[]" type="checkbox" value="%s" %s> %s</label><br>',
+                esc_attr($value),
+                checked(in_array($value, $selected, true), true, false),
+                esc_html($label)
+            );
+        }
 
-/**
- * Lock the ACF Measurement ID field while the constant is set.
- *
- * A disabled input isn't submitted, so the stored ID survives for when the
- * constant goes away.
- *
- * @return array
- */
-add_filter('acf/prepare_field/key=field_ga_measurement_id', function ($field) {
-    if (! (defined('GA_MEASUREMENT_ID') && GA_MEASUREMENT_ID)) {
-        return $field;
-    }
-
-    $field['disabled'] = 1;
-    $field['value'] = (string) GA_MEASUREMENT_ID;
-    $field['instructions'] = __('Set by the GA_MEASUREMENT_ID constant.', 'sage');
-
-    return $field;
-});
-
-/**
- * Reject an ACF Measurement ID that isn't G-XXXXXXXXXX.
- *
- * @return bool|string
- */
-add_filter('acf/validate_value/key=field_ga_measurement_id', function ($valid, $value) {
-    if ($valid !== true || google_analytics_id_is_valid(strtoupper(trim((string) $value)))) {
-        return $valid;
-    }
-
-    return __('The Google Analytics Measurement ID should look like G-XXXXXXXXXX.', 'sage');
-}, 10, 2);
-
-/**
- * Store the ACF Measurement ID trimmed and uppercased.
- *
- * @return string
- */
-add_filter('acf/update_value/key=field_ga_measurement_id', function ($value) {
-    return strtoupper(trim((string) $value));
+        printf(
+            '<p class="description">%s</p></fieldset>',
+            esc_html(sprintf(
+                /* translators: %s is the site's environment type, such as local or production */
+                __('The tag only loads on the environment types ticked here. This site is %s.', 'sage'),
+                wp_get_environment_type()
+            ))
+        );
+    }, 'google-analytics', 'google_analytics');
 });
 
 /**

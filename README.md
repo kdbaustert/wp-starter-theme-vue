@@ -14,7 +14,7 @@ A WordPress starter theme built on [Sage 11](https://roots.io/sage/), with Boots
 - **A rename script.** It sets the theme name, slug, text domain, block namespace and package names in one go.
 - **A build that doesn't care where it lives.** Asset URLs are relative, so the same build works under Bedrock (`app/themes`) or a standard install (`wp-content/themes`), in any folder name.
 - **Block editor styles.** Bootstrap typography, buttons, tables and alerts inside the editor, and a colour palette that matches Bootstrap's theme colours.
-- **Google Analytics.** Paste a Measurement ID under Settings → General or set it as a constant, and the tag loads on production only.
+- **Google Analytics.** Paste a Measurement ID under Appearance → Google Analytics or set it as a constant, and pick the environments the tag loads on.
 
 ## Requirements
 
@@ -130,7 +130,7 @@ The primary menu renders as a Bootstrap navbar that collapses on small screens. 
 
 Add your GA4 Measurement ID (`G-XXXXXXXXXX`) in one of two places:
 
-- **In the admin.** With ACF Pro active, it's under Settings → Google Analytics, next to a switch that turns the tag off and the environment types it loads on. Without ACF Pro, it's under Settings → General → Google Analytics ID.
+- **In the admin,** under Appearance → Google Analytics. The same page has a switch that turns the tag off and the environment types it loads on.
 - **As a constant,** which wins over the admin field and locks it. In `wp-config.php`:
 
   ```php
@@ -139,7 +139,7 @@ Add your GA4 Measurement ID (`G-XXXXXXXXXX`) in one of two places:
 
   On Bedrock, add `Config::define('GA_MEASUREMENT_ID', env('GA_MEASUREMENT_ID'));` to `config/application.php` and set the value in `.env`. Leaving it empty falls back to the admin field.
 
-The tag only loads when `wp_get_environment_type()` is `production`, unless the ACF page picks other environments. The ACF page keeps its own copy of the ID, so a site moving to ACF Pro needs the ID entered again there. WordPress reports production when nothing says otherwise, so set `WP_ENVIRONMENT_TYPE` to `local` or `staging` on other copies of the site. Bedrock does this for you from `WP_ENV`.
+Out of the box, the tag only loads when `wp_get_environment_type()` is `production`. WordPress reports production when nothing says otherwise, so set `WP_ENVIRONMENT_TYPE` to `local` or `staging` on other copies of the site. Bedrock does this for you from `WP_ENV`.
 
 ### Translations
 
