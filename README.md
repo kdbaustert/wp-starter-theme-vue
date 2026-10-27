@@ -130,7 +130,7 @@ The primary menu renders as a Bootstrap navbar that collapses on small screens. 
 
 Add your GA4 Measurement ID (`G-XXXXXXXXXX`) in one of two places:
 
-- **In the admin,** under Settings → General → Google Analytics ID.
+- **In the admin.** With ACF Pro active, it's under Settings → Google Analytics, next to a switch that turns the tag off and the environment types it loads on. Without ACF Pro, it's under Settings → General → Google Analytics ID.
 - **As a constant,** which wins over the admin field and locks it. In `wp-config.php`:
 
   ```php
@@ -139,7 +139,7 @@ Add your GA4 Measurement ID (`G-XXXXXXXXXX`) in one of two places:
 
   On Bedrock, add `Config::define('GA_MEASUREMENT_ID', env('GA_MEASUREMENT_ID'));` to `config/application.php` and set the value in `.env`. Leaving it empty falls back to the admin field.
 
-The tag only loads when `wp_get_environment_type()` is `production`. WordPress reports production when nothing says otherwise, so set `WP_ENVIRONMENT_TYPE` to `local` or `staging` on other copies of the site. Bedrock does this for you from `WP_ENV`.
+The tag only loads when `wp_get_environment_type()` is `production`, unless the ACF page picks other environments. The ACF page keeps its own copy of the ID, so a site moving to ACF Pro needs the ID entered again there. WordPress reports production when nothing says otherwise, so set `WP_ENVIRONMENT_TYPE` to `local` or `staging` on other copies of the site. Bedrock does this for you from `WP_ENV`.
 
 ### Translations
 

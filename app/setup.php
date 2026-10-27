@@ -163,10 +163,23 @@ add_action('widgets_init', function () {
 });
 
 /**
+ * Whether the Google Analytics settings live on an ACF options page.
+ *
+ * Options pages need ACF Pro. Without it, the Measurement ID falls back to
+ * the Settings > General field and the tag loads on production only.
+ *
+ * @return bool
+ */
+function google_analytics_uses_acf(): bool
+{
+    return function_exists('acf_add_options_page') && function_exists('acf_add_local_field_group');
+}
+
+/**
  * Get the Google Analytics Measurement ID.
  *
- * A non-empty GA_MEASUREMENT_ID constant wins over the Settings > General
- * field, so each environment can set its own ID in wp-config.php or .env.
+ * A non-empty GA_MEASUREMENT_ID constant wins over the admin field, so each
+ * environment can set its own ID in wp-config.php or .env.
  *
  * @return string
  */
@@ -176,7 +189,41 @@ function google_analytics_id(): string
         return (string) GA_MEASUREMENT_ID;
     }
 
+    if (google_analytics_uses_acf()) {
+        // Field keys, not names, so the defaults apply before the page is saved.
+        return (string) get_field('field_ga_measurement_id', 'option');
+    }
+
     return (string) get_option('ga_measurement_id', '');
+}
+
+/**
+ * Whether the Google Analytics tag should load in this environment.
+ *
+ * @return bool
+ */
+function google_analytics_loads(): bool
+{
+    if (! google_analytics_uses_acf()) {
+        return wp_get_environment_type() === 'production';
+    }
+
+    $environments = (array) get_field('field_ga_environments', 'option');
+
+    return get_field('field_ga_enabled', 'option')
+        && in_array(wp_get_environment_type(), $environments, true);
+}
+
+/**
+ * Whether a trimmed, uppercased value is a GA4 Measurement ID. Empty is
+ * allowed, since it clears the ID.
+ *
+ * @param  string  $id
+ * @return bool
+ */
+function google_analytics_id_is_valid(string $id): bool
+{
+    return $id === '' || preg_match('/^G-[A-Z0-9]+$/', $id) === 1;
 }
 
 /**
@@ -185,6 +232,10 @@ function google_analytics_id(): string
  * @return void
  */
 add_action('admin_init', function () {
+    if (google_analytics_uses_acf()) {
+        return;
+    }
+
     register_setting('general', 'ga_measurement_id', [
         'type' => 'string',
         'default' => '',
@@ -197,7 +248,7 @@ add_action('admin_init', function () {
 
             $value = strtoupper(trim((string) $value));
 
-            if ($value === '' || preg_match('/^G-[A-Z0-9]+$/', $value)) {
+            if (google_analytics_id_is_valid($value)) {
                 return $value;
             }
 
@@ -229,7 +280,116 @@ add_action('admin_init', function () {
 });
 
 /**
- * Load the Google Analytics tag on production sites.
+ * Register the Settings > Google Analytics options page and its fields.
+ *
+ * @link https://www.advancedcustomfields.com/resources/options-page/
+ *
+ * @return void
+ */
+add_action('acf/init', function () {
+    if (! google_analytics_uses_acf()) {
+        return;
+    }
+
+    acf_add_options_page([
+        'page_title' => __('Google Analytics', 'sage'),
+        'menu_slug' => 'google-analytics',
+        'parent_slug' => 'options-general.php',
+        'capability' => 'manage_options',
+        'autoload' => true,
+    ]);
+
+    acf_add_local_field_group([
+        'key' => 'group_google_analytics',
+        'title' => __('Google Analytics', 'sage'),
+        'fields' => [
+            [
+                'key' => 'field_ga_enabled',
+                'name' => 'ga_enabled',
+                'label' => __('Load the tag', 'sage'),
+                'type' => 'true_false',
+                'ui' => 1,
+                'default_value' => 1,
+            ],
+            [
+                'key' => 'field_ga_measurement_id',
+                'name' => 'ga_measurement_id',
+                'label' => __('Measurement ID', 'sage'),
+                'type' => 'text',
+                'placeholder' => 'G-XXXXXXXXXX',
+            ],
+            [
+                'key' => 'field_ga_environments',
+                'name' => 'ga_environments',
+                'label' => __('Environments', 'sage'),
+                'instructions' => __('The tag only loads when the environment type is one of these.', 'sage'),
+                'type' => 'checkbox',
+                'choices' => [
+                    'production' => __('Production', 'sage'),
+                    'staging' => __('Staging', 'sage'),
+                    'development' => __('Development', 'sage'),
+                    'local' => __('Local', 'sage'),
+                ],
+                'default_value' => ['production'],
+                'return_format' => 'value',
+            ],
+        ],
+        'location' => [
+            [
+                [
+                    'param' => 'options_page',
+                    'operator' => '==',
+                    'value' => 'google-analytics',
+                ],
+            ],
+        ],
+    ]);
+});
+
+/**
+ * Lock the ACF Measurement ID field while the constant is set.
+ *
+ * A disabled input isn't submitted, so the stored ID survives for when the
+ * constant goes away.
+ *
+ * @return array
+ */
+add_filter('acf/prepare_field/key=field_ga_measurement_id', function ($field) {
+    if (! (defined('GA_MEASUREMENT_ID') && GA_MEASUREMENT_ID)) {
+        return $field;
+    }
+
+    $field['disabled'] = 1;
+    $field['value'] = (string) GA_MEASUREMENT_ID;
+    $field['instructions'] = __('Set by the GA_MEASUREMENT_ID constant.', 'sage');
+
+    return $field;
+});
+
+/**
+ * Reject an ACF Measurement ID that isn't G-XXXXXXXXXX.
+ *
+ * @return bool|string
+ */
+add_filter('acf/validate_value/key=field_ga_measurement_id', function ($valid, $value) {
+    if ($valid !== true || google_analytics_id_is_valid(strtoupper(trim((string) $value)))) {
+        return $valid;
+    }
+
+    return __('The Google Analytics Measurement ID should look like G-XXXXXXXXXX.', 'sage');
+}, 10, 2);
+
+/**
+ * Store the ACF Measurement ID trimmed and uppercased.
+ *
+ * @return string
+ */
+add_filter('acf/update_value/key=field_ga_measurement_id', function ($value) {
+    return strtoupper(trim((string) $value));
+});
+
+/**
+ * Load the Google Analytics tag where google_analytics_loads() allows it.
  *
  * wp_get_environment_type() reports production unless WP_ENVIRONMENT_TYPE
  * says otherwise, so local and staging sites need it set to stay out.
@@ -241,7 +401,7 @@ add_action('admin_init', function () {
 add_action('wp_enqueue_scripts', function () {
     $id = google_analytics_id();
 
-    if (! $id || wp_get_environment_type() !== 'production') {
+    if (! $id || ! google_analytics_loads()) {
         return;
     }
 
