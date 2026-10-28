@@ -14,10 +14,10 @@ A WordPress starter theme built on [Sage 11](https://roots.io/sage/), with Boots
 - **A rename script.** It sets the theme name, slug, text domain, block namespace and package names in one go.
 - **A build that doesn't care where it lives.** Asset URLs are relative, so the same build works under Bedrock (`app/themes`) or a standard install (`wp-content/themes`), in any folder name.
 - **Block editor styles.** Bootstrap typography, buttons, tables and alerts inside the editor, and a colour palette that matches Bootstrap's theme colours.
-- **Google Analytics.** Paste a Measurement ID under Appearance → Google Analytics or set it as a constant, and pick the environments the tag loads on.
-- **Site Settings.** Social profile links, the footer line and the Search Console verification code under Appearance → Site Settings.
+- **Google Analytics.** Paste a Measurement ID under Theme Settings → Google Analytics or set it as a constant, and pick the environments the tag loads on.
+- **Site Settings.** Contact details, social profile links, the footer line, a comments switch and the Search Console verification code under Theme Settings → Site Settings.
 - **Light and dark mode.** A switch in the navbar uses Bootstrap's colour modes and follows the visitor's system setting until they pick one.
-- **A tidier head.** No emoji polyfill, generator tag or RSD link, and XML-RPC is off.
+- **A tidier head.** No emoji polyfill, generator tag, RSD link or oEmbed discovery links, and XML-RPC is off.
 
 ## Requirements
 
@@ -118,6 +118,10 @@ To add a block, copy the folder and the view, then rename both. The Blade view r
 
 Add entries to the `$postTypes` and `$taxonomies` lists in `app/content.php`. The file has a commented example. Templates follow the usual hierarchy as Blade views, for example `resources/views/single-project.blade.php` or `archive-project.blade.php`.
 
+### ACF fields
+
+With [Advanced Custom Fields](https://www.advancedcustomfields.com/) active, every field group, post type, taxonomy and options page you save in the admin is written to `resources/acf-json` as a JSON file. Commit those files. ACF reads the folder on every site, so the fields work after a deploy without touching the database. To edit them in the admin on another copy of the site, open ACF → Field Groups and use **Sync available** to import the newer files.
+
 ### WooCommerce
 
 Activate WooCommerce and the shop renders inside the theme's layout. This is handled by [generoi/sage-woocommerce](https://github.com/generoi/sage-woocommerce).
@@ -139,12 +143,14 @@ The navbar shows the logo from Appearance → Customize → Site Identity, or th
 
 ### Site Settings
 
-Appearance → Site Settings holds:
+Theme Settings → Site Settings holds:
 
 - **Footer text.** `{year}` becomes the current year. Left empty, it's `© {year}` and the site name.
+- **Contact details.** A phone number, email and address, shown in the footer. On the front page they also go into Organization schema (JSON-LD) along with the logo and social profiles. The schema is skipped when Yoast SEO or Rank Math is active, since both print their own.
 - **Social profiles.** Every network with a URL gets a link in the footer. The list is `social_networks()` in `app/setup.php`.
 - **Search Console.** Paste the HTML tag verification code, or the whole `<meta>` tag.
 - **Colour modes.** Turns the light and dark switch on or off.
+- **Comments.** Unticked, comments and pingbacks are closed on every post type, existing ones are hidden, and Comments leaves the admin menu and toolbar. Nothing is deleted, so ticking it again brings them back.
 
 ### Light and dark mode
 
@@ -152,13 +158,13 @@ The switch in the navbar sets Bootstrap's `data-bs-theme` attribute on `<html>`.
 
 ### Head cleanup
 
-`app/filters.php` removes the emoji polyfill, the generator tag and the RSD link from the front end, and turns XML-RPC off. Jetpack and the old WordPress mobile apps need XML-RPC, so delete the `xmlrpc_methods` and `wp_headers` filters if a site uses either.
+`app/filters.php` removes the emoji polyfill, the generator tag, the RSD link and the oEmbed discovery links from the front end, and turns XML-RPC off. It also removes the Events and News and Quick Draft widgets from the dashboard. Jetpack and the old WordPress mobile apps need XML-RPC, so delete the `xmlrpc_methods` and `wp_headers` filters if a site uses either.
 
 ### Google Analytics
 
 Add your GA4 Measurement ID (`G-XXXXXXXXXX`) in one of two places:
 
-- **In the admin,** under Appearance → Google Analytics. The same page has a switch that turns the tag off, the environment types it loads on, and an option to leave logged-in authors, editors and administrators untracked.
+- **In the admin,** under Theme Settings → Google Analytics. The same page has a switch that turns the tag off, the environment types it loads on, and an option to leave logged-in authors, editors and administrators untracked.
 - **As a constant,** which wins over the admin field and locks it. In `wp-config.php`:
 
   ```php
@@ -168,6 +174,8 @@ Add your GA4 Measurement ID (`G-XXXXXXXXXX`) in one of two places:
   On Bedrock, add `Config::define('GA_MEASUREMENT_ID', env('GA_MEASUREMENT_ID'));` to `config/application.php` and set the value in `.env`. Leaving it empty falls back to the admin field.
 
 Out of the box, the tag only loads when `wp_get_environment_type()` is `production`. WordPress reports production when nothing says otherwise, so set `WP_ENVIRONMENT_TYPE` to `local` or `staging` on other copies of the site. Bedrock does this for you from `WP_ENV`.
+
+For visitors in the EU and UK, tick **Consent Mode** on the same page. The tag then starts with analytics and ad cookies denied and sends only cookieless pings until consent is granted. The theme has no cookie banner: add a consent plugin that supports Google Consent Mode v2, or call `gtag('consent', 'update', {...})` from your own banner.
 
 ### Translations
 
@@ -189,6 +197,7 @@ app/
   View/Composers/        data passed to Blade views
 bin/rename.js            the rebrand script
 resources/
+  acf-json/              ACF field groups, saved from the admin
   blocks/                one folder per block
   css/                   Bootstrap config and theme styles
   js/

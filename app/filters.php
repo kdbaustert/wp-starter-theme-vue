@@ -63,9 +63,12 @@ add_filter('nav_menu_link_attributes', function ($atts, $item, $args) {
 }, 10, 3);
 
 /**
- * Drop the emoji polyfill and the generator and RSD tags from the front end.
- * Every supported browser renders emoji natively, the generator tag only
- * advertises the WordPress version, and RSD exists for XML-RPC clients.
+ * Drop the emoji polyfill, the generator and RSD tags and the oEmbed
+ * discovery links from the front end. Every supported browser renders emoji
+ * natively, the generator tag only advertises the WordPress version, RSD
+ * exists for XML-RPC clients, and the discovery links only matter to other
+ * sites embedding this one. Pasting this site's URLs into its own editor
+ * still embeds them.
  */
 remove_action('wp_head', 'print_emoji_detection_script', 7);
 remove_action('wp_enqueue_scripts', 'wp_enqueue_emoji_styles');
@@ -75,6 +78,18 @@ remove_filter('comment_text_rss', 'wp_staticize_emoji');
 remove_filter('wp_mail', 'wp_staticize_emoji_for_email');
 remove_action('wp_head', 'wp_generator');
 remove_action('wp_head', 'rsd_link');
+remove_action('wp_head', 'wp_oembed_add_discovery_links');
+
+/**
+ * Remove the Events and News and Quick Draft dashboard widgets. The first
+ * calls out to wordpress.org on every dashboard load.
+ *
+ * @return void
+ */
+add_action('wp_dashboard_setup', function () {
+    remove_meta_box('dashboard_primary', 'dashboard', 'side');
+    remove_meta_box('dashboard_quick_press', 'dashboard', 'side');
+});
 
 /**
  * Turn XML-RPC off. The xmlrpc_enabled filter only blocks the methods that
@@ -89,4 +104,22 @@ add_filter('wp_headers', function ($headers) {
     unset($headers['X-Pingback']);
 
     return $headers;
+});
+
+/**
+ * Keep ACF field groups, post types, taxonomies and options pages in
+ * resources/acf-json, so they're versioned with the theme. ACF writes a group
+ * there each time it's saved in the admin and reads the folder on every site,
+ * where groups with newer files are listed under Sync available.
+ *
+ * @return string
+ */
+add_filter('acf/settings/save_json', fn () => resource_path('acf-json'));
+
+add_filter('acf/settings/load_json', function ($paths) {
+    // Drop ACF's default, the theme root's acf-json folder.
+    unset($paths[0]);
+    $paths[] = resource_path('acf-json');
+
+    return $paths;
 });

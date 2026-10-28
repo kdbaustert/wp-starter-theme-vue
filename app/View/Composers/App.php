@@ -39,8 +39,8 @@ class App extends Composer
     }
 
     /**
-     * Retrieve the social profile URLs set under Appearance > Site Settings,
-     * keyed by the network's label.
+     * Retrieve the social profile URLs set under Theme Settings > Site
+     * Settings, keyed by the network's label.
      */
     public function socialLinks(): array
     {
@@ -54,6 +54,15 @@ class App extends Composer
         }
 
         return $links;
+    }
+
+    /**
+     * Retrieve the phone, email and address set under Theme Settings > Site
+     * Settings. Empty ones are left out.
+     */
+    public function contact(): array
+    {
+        return array_filter((array) get_option('site_contact'));
     }
 
     /**

@@ -26,6 +26,24 @@
       </div>
     @endif
 
+    @php($contact = $contact())
+
+    @if ($contact)
+      <address class="small text-body-secondary">
+        @isset($contact['address'])
+          {!! nl2br(e($contact['address'])) !!}<br>
+        @endisset
+
+        @isset($contact['phone'])
+          <a class="link-secondary" href="tel:{{ preg_replace('/[^0-9+]/', '', $contact['phone']) }}">{{ $contact['phone'] }}</a><br>
+        @endisset
+
+        @isset($contact['email'])
+          <a class="link-secondary" href="mailto:{!! antispambot($contact['email']) !!}">{!! antispambot($contact['email']) !!}</a>
+        @endisset
+      </address>
+    @endif
+
     @php(dynamic_sidebar('sidebar-footer'))
 
     <p class="small text-body-secondary mb-0">{{ $footerText }}</p>

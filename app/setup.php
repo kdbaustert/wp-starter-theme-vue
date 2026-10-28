@@ -336,15 +336,23 @@ add_action('init', function () {
         'default' => false,
         'sanitize_callback' => fn ($value) => (bool) $value,
     ]);
+
+    register_setting('google_analytics', 'ga_consent_mode', [
+        'type' => 'boolean',
+        'default' => false,
+        'sanitize_callback' => fn ($value) => (bool) $value,
+    ]);
 });
 
 /**
- * Add the Appearance > Google Analytics page.
+ * Add the Theme Settings > Google Analytics page. It runs after the Theme
+ * Settings menu is added, so Site Settings stays the menu's first page.
  *
  * @return void
  */
 add_action('admin_menu', function () {
-    add_theme_page(
+    add_submenu_page(
+        'site-settings',
         __('Google Analytics', 'sage'),
         __('Google Analytics', 'sage'),
         'manage_options',
@@ -362,10 +370,10 @@ add_action('admin_menu', function () {
             echo '</form></div>';
         }
     );
-});
+}, 20);
 
 /**
- * Add the fields to the Appearance > Google Analytics page.
+ * Add the fields to the Theme Settings > Google Analytics page.
  *
  * @return void
  */
@@ -400,6 +408,16 @@ add_action('admin_init', function () {
             '<label><input name="ga_exclude_staff" id="ga_exclude_staff" type="checkbox" value="1" %s> %s</label>',
             checked(get_option('ga_exclude_staff'), true, false),
             esc_html__("Don't track users who can edit posts (authors, editors and administrators)", 'sage')
+        );
+    }, 'google-analytics', 'google_analytics');
+
+    add_settings_field('ga_consent_mode', __('Consent Mode', 'sage'), function () {
+        printf(
+            '<label><input name="ga_consent_mode" id="ga_consent_mode" type="checkbox" value="1" %s> %s</label>'
+            .'<p class="description">%s</p>',
+            checked(get_option('ga_consent_mode'), true, false),
+            esc_html__('Deny analytics and ad cookies until the visitor consents', 'sage'),
+            esc_html__('Needed in the EU and UK. A cookie banner plugin that supports Google Consent Mode v2 grants consent; without one, GA only gets cookieless pings.', 'sage')
         );
     }, 'google-analytics', 'google_analytics');
 
@@ -453,16 +471,24 @@ add_action('wp_enqueue_scripts', function () {
         ['strategy' => 'async']
     );
 
-    wp_add_inline_script('google-analytics', implode("\n", [
+    // The consent default has to come before the config call. wait_for_update
+    // gives a banner time to apply a visitor's stored choice before the first hit.
+    $consentDefault = get_option('ga_consent_mode')
+        ? "gtag('consent', 'default', {ad_storage: 'denied', ad_user_data: 'denied',"
+            ." ad_personalization: 'denied', analytics_storage: 'denied', wait_for_update: 500});"
+        : '';
+
+    wp_add_inline_script('google-analytics', implode("\n", array_filter([
         'window.dataLayer = window.dataLayer || [];',
         'function gtag(){dataLayer.push(arguments);}',
+        $consentDefault,
         "gtag('js', new Date());",
         sprintf("gtag('config', %s);", wp_json_encode($id)),
-    ]), 'before');
+    ])), 'before');
 });
 
 /**
- * The social networks Appearance > Site Settings has a profile URL field
+ * The social networks Theme Settings > Site Settings has a profile URL field
  * for, keyed by the option key, in the order the footer lists them.
  *
  * @return array
@@ -473,7 +499,6 @@ function social_networks(): array
         'facebook' => __('Facebook', 'sage'),
         'instagram' => __('Instagram', 'sage'),
         'linkedin' => __('LinkedIn', 'sage'),
-        'x' => __('X', 'sage'),
         'youtube' => __('YouTube', 'sage'),
         'tiktok' => __('TikTok', 'sage'),
     ];
@@ -517,6 +542,26 @@ add_action('init', function () {
         'sanitize_callback' => 'sanitize_text_field',
     ]);
 
+    register_setting('site_settings', 'site_contact', [
+        'type' => 'array',
+        'default' => [],
+        'sanitize_callback' => function ($value) {
+            $value = (array) $value;
+
+            return array_filter([
+                'phone' => sanitize_text_field($value['phone'] ?? ''),
+                'email' => sanitize_email($value['email'] ?? ''),
+                'address' => sanitize_textarea_field($value['address'] ?? ''),
+            ]);
+        },
+    ]);
+
+    register_setting('site_settings', 'site_comments', [
+        'type' => 'boolean',
+        'default' => true,
+        'sanitize_callback' => fn ($value) => (bool) $value,
+    ]);
+
     register_setting('site_settings', 'site_search_console', [
         'type' => 'string',
         'default' => '',
@@ -531,14 +576,15 @@ add_action('init', function () {
 });
 
 /**
- * Add the Appearance > Site Settings page.
+ * Add the Theme Settings menu, just below Appearance, with Site Settings as
+ * its first page.
  *
  * @return void
  */
 add_action('admin_menu', function () {
-    add_theme_page(
+    add_menu_page(
         __('Site Settings', 'sage'),
-        __('Site Settings', 'sage'),
+        __('Theme Settings', 'sage'),
         'manage_options',
         'site-settings',
         function () {
@@ -551,20 +597,35 @@ add_action('admin_menu', function () {
             do_settings_sections('site-settings');
             submit_button();
             echo '</form></div>';
-        }
+        },
+        'dashicons-admin-settings',
+        61
+    );
+
+    // Without this, the menu's first item repeats "Theme Settings".
+    add_submenu_page(
+        'site-settings',
+        __('Site Settings', 'sage'),
+        __('Site Settings', 'sage'),
+        'manage_options',
+        'site-settings'
     );
 });
 
 /**
- * Add the fields to the Appearance > Site Settings page.
+ * Add the fields to the Theme Settings > Site Settings page.
  *
  * @return void
  */
 add_action('admin_init', function () {
     add_settings_section('site_settings_footer', __('Footer', 'sage'), '', 'site-settings');
+    add_settings_section('site_settings_contact', __('Contact details', 'sage'), function () {
+        echo '<p>'.esc_html__('Shown in the footer and given to search engines on the front page.', 'sage').'</p>';
+    }, 'site-settings');
     add_settings_section('site_settings_social', __('Social profiles', 'sage'), function () {
         echo '<p>'.esc_html__('Profiles with a URL are linked in the footer.', 'sage').'</p>';
     }, 'site-settings');
+    add_settings_section('site_settings_comments', __('Comments', 'sage'), '', 'site-settings');
     add_settings_section('site_settings_head', __('Site head', 'sage'), '', 'site-settings');
 
     add_settings_field('site_footer_text', __('Footer text', 'sage'), function () {
@@ -577,6 +638,29 @@ add_action('admin_init', function () {
         );
     }, 'site-settings', 'site_settings_footer', ['label_for' => 'site_footer_text']);
 
+    $contact = (array) get_option('site_contact');
+
+    add_settings_field('site_contact_phone', __('Phone', 'sage'), function () use ($contact) {
+        printf(
+            '<input name="site_contact[phone]" id="site_contact_phone" type="tel" class="regular-text" value="%s">',
+            esc_attr($contact['phone'] ?? '')
+        );
+    }, 'site-settings', 'site_settings_contact', ['label_for' => 'site_contact_phone']);
+
+    add_settings_field('site_contact_email', __('Email', 'sage'), function () use ($contact) {
+        printf(
+            '<input name="site_contact[email]" id="site_contact_email" type="email" class="regular-text" value="%s">',
+            esc_attr($contact['email'] ?? '')
+        );
+    }, 'site-settings', 'site_settings_contact', ['label_for' => 'site_contact_email']);
+
+    add_settings_field('site_contact_address', __('Address', 'sage'), function () use ($contact) {
+        printf(
+            '<textarea name="site_contact[address]" id="site_contact_address" class="regular-text" rows="3">%s</textarea>',
+            esc_textarea($contact['address'] ?? '')
+        );
+    }, 'site-settings', 'site_settings_contact', ['label_for' => 'site_contact_address']);
+
     $links = (array) get_option('site_social_links');
 
     foreach (social_networks() as $network => $label) {
@@ -588,6 +672,16 @@ add_action('admin_init', function () {
             );
         }, 'site-settings', 'site_settings_social', ['label_for' => "site_social_links_{$network}"]);
     }
+
+    add_settings_field('site_comments', __('Allow comments', 'sage'), function () {
+        printf(
+            '<label><input name="site_comments" id="site_comments" type="checkbox" value="1" %s> %s</label>'
+            .'<p class="description">%s</p>',
+            checked(get_option('site_comments'), true, false),
+            esc_html__('Let visitors comment and send pingbacks', 'sage'),
+            esc_html__('Unticked, comments are closed and hidden everywhere and leave the admin menu. Existing comments stay in the database.', 'sage')
+        );
+    }, 'site-settings', 'site_settings_comments');
 
     add_settings_field('site_search_console', __('Search Console', 'sage'), function () {
         printf(
@@ -621,6 +715,67 @@ add_action('wp_head', function () {
         printf('<meta name="google-site-verification" content="%s">'."\n", esc_attr($token));
     }
 }, 1);
+
+/**
+ * Describe the site's organisation to search engines on the front page, from
+ * the site name, logo, contact details and social profiles. Yoast and Rank
+ * Math print their own Organization markup, so this steps aside for them.
+ *
+ * @link https://developers.google.com/search/docs/appearance/structured-data/organization
+ *
+ * @return void
+ */
+add_action('wp_head', function () {
+    if (! is_front_page() || defined('WPSEO_VERSION') || defined('RANK_MATH_VERSION')) {
+        return;
+    }
+
+    $contact = (array) get_option('site_contact');
+
+    $organization = array_filter([
+        '@context' => 'https://schema.org',
+        '@type' => 'Organization',
+        'name' => get_bloginfo('name'),
+        'url' => home_url('/'),
+        'logo' => wp_get_attachment_image_url(get_theme_mod('custom_logo'), 'full'),
+        'telephone' => $contact['phone'] ?? null,
+        'email' => $contact['email'] ?? null,
+        'address' => $contact['address'] ?? null,
+        'sameAs' => array_values(array_intersect_key((array) get_option('site_social_links'), social_networks())),
+    ]);
+
+    // JSON_HEX_TAG escapes < and >, so no value can close the script tag.
+    wp_print_inline_script_tag(
+        wp_json_encode($organization, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG),
+        ['type' => 'application/ld+json']
+    );
+});
+
+/**
+ * Turn comments and pingbacks off everywhere when Theme Settings > Site
+ * Settings says so. Runs late on init so post types registered earlier lose comment
+ * support too, which also drops the Discussion box and comment columns.
+ *
+ * @return void
+ */
+add_action('init', function () {
+    if (get_option('site_comments')) {
+        return;
+    }
+
+    foreach (get_post_types() as $postType) {
+        remove_post_type_support($postType, 'comments');
+        remove_post_type_support($postType, 'trackbacks');
+    }
+
+    add_filter('comments_open', '__return_false');
+    add_filter('pings_open', '__return_false');
+    add_filter('comments_array', '__return_empty_array');
+    add_filter('get_comments_number', '__return_zero');
+
+    add_action('admin_menu', fn () => remove_menu_page('edit-comments.php'));
+    add_action('admin_bar_menu', fn ($adminBar) => $adminBar->remove_node('comments'), 100);
+}, 100);
 
 /**
  * Set Bootstrap's colour mode before the page paints, so a dark mode visitor
