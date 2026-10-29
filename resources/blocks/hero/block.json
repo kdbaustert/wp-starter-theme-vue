@@ -1,0 +1,32 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "sage/hero",
+  "title": "Hero",
+  "category": "design",
+  "icon": "cover-image",
+  "description": "A large heading with a short paragraph and a button.",
+  "textdomain": "sage",
+  "attributes": {
+    "heading": {
+      "type": "string",
+      "default": ""
+    },
+    "text": {
+      "type": "string",
+      "default": ""
+    },
+    "buttonLabel": {
+      "type": "string",
+      "default": ""
+    },
+    "buttonUrl": {
+      "type": "string",
+      "default": ""
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": ["full"]
+  }
+}

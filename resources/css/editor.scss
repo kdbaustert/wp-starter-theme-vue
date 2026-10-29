@@ -16,5 +16,14 @@
   @import "bootstrap/scss/tables";
   @import "bootstrap/scss/buttons";
   @import "bootstrap/scss/alert";
+  @import "bootstrap/scss/grid";
+  @import "bootstrap/scss/card";
+  @import "bootstrap/scss/accordion";
   @import "blocks";
+
+  // The editor shows the accordion's items as plain boxes: Bootstrap's
+  // collapse needs its JavaScript, which the editor doesn't load.
+  .accordion-item {
+    padding: $spacer;
+  }
 }

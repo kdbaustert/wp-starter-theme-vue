@@ -1,0 +1,20 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "sage/card-grid",
+  "title": "Card grid",
+  "category": "design",
+  "icon": "grid-view",
+  "description": "A responsive row of cards.",
+  "textdomain": "sage",
+  "attributes": {
+    "columns": {
+      "type": "number",
+      "default": 3
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": ["wide", "full"]
+  }
+}

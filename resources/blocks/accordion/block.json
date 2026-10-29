@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "sage/accordion",
+  "title": "Accordion",
+  "category": "design",
+  "icon": "list-view",
+  "description": "Questions and answers that open one at a time.",
+  "textdomain": "sage",
+  "attributes": {
+    "items": {
+      "type": "array",
+      "items": { "type": "object" },
+      "default": [{ "title": "", "content": "" }]
+    },
+    "alwaysOpen": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "supports": {
+    "html": false
+  }
+}

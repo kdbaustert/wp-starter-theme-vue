@@ -18,6 +18,10 @@ A WordPress starter theme built on [Sage 11](https://roots.io/sage/), with Boots
 - **Site Settings.** Contact details, social profile links, the footer line, a comments switch and the Search Console verification code under Theme Settings → Site Settings.
 - **Light and dark mode.** A switch in the navbar uses Bootstrap's colour modes and follows the visitor's system setting until they pick one.
 - **A tidier head.** No emoji polyfill, generator tag, RSD link or oEmbed discovery links, and XML-RPC is off.
+- **Custom code boxes.** Head and footer snippets for pixels and widgets, under Theme Settings → Custom Code.
+- **Self-hosted fonts.** Drop WOFF2 files in `resources/fonts` and pick a body and heading font under Theme Settings → Typography.
+- **Performance switches.** Preload the body font, and drop jQuery, the wp-embed script or the block library styles.
+- **Redirects.** A from/to table with 301 and 302 types under Theme Settings → Redirects.
 
 ## Requirements
 
@@ -55,6 +59,8 @@ A WordPress starter theme built on [Sage 11](https://roots.io/sage/), with Boots
    npm run rename -- --name "My Project" --slug my-project --description "..." \
      --author "Me" --author-uri https://example.com --uri https://example.com
    ```
+
+   The starter's code uses `sage` as its text domain (`__('Search', 'sage')`) and as its block namespace (`sage/callout`). The script swaps the quoted text domain and the block names in `functions.php`, `index.php`, `app`, `resources/views`, `resources/blocks` and `resources/js` for your slug, so run it before you write any code. Strings and blocks you add afterwards need your slug, not `sage`.
 
 4. **Point the dev server at your local site.**
 
@@ -114,6 +120,12 @@ resources/views/blocks/callout.blade.php    front-end output
 
 To add a block, copy the folder and the view, then rename both. The Blade view receives `$attributes`, `$content` and `$block`. `@wordpress/*` imports in the editor script use WordPress's own copies, so there's nothing to install.
 
+The theme ships these examples besides Callout:
+
+- **Hero** and **Call to action.** Attribute-only blocks with a heading, text and a button.
+- **Accordion.** Shows a repeated list in an attribute: add, edit and remove items in the editor, rendered as a Bootstrap accordion.
+- **Card grid** with **Card.** Shows inner blocks. Cards can only go inside the grid, and the grid's column count is a setting.
+
 ### Post types and taxonomies
 
 Add entries to the `$postTypes` and `$taxonomies` lists in `app/content.php`. The file has a commented example. Templates follow the usual hierarchy as Blade views, for example `resources/views/single-project.blade.php` or `archive-project.blade.php`.
@@ -152,6 +164,35 @@ Theme Settings → Site Settings holds:
 - **Colour modes.** Turns the light and dark switch on or off.
 - **Comments.** Unticked, comments and pingbacks are closed on every post type, existing ones are hidden, and Comments leaves the admin menu and toolbar. Nothing is deleted, so ticking it again brings them back.
 
+### Custom Code
+
+Theme Settings → Custom Code has two boxes, one printed at the end of the `<head>` and one before `</body>`. Whatever you type goes out as written, so only users who can post unfiltered HTML (administrators on a single site, super admins on multisite) can edit them. Everyone else sees the boxes read-only.
+
+### Fonts
+
+Theme Settings → Typography lists the families found in `resources/fonts`. Each family is a folder of WOFF2 files named for their weight, with `-italic` for italics:
+
+```
+resources/fonts/inter/400.woff2
+resources/fonts/inter/400-italic.woff2
+resources/fonts/inter/700.woff2
+```
+
+Run `npm run build` after adding files. The folder name becomes the family name (`open-sans` shows as Open Sans). The body font sets Bootstrap's `--bs-body-font-family` and the heading font applies to `h1` to `h6`. The `@font-face` rules use `font-display: swap`. The block editor doesn't pick the fonts up.
+
+### Performance
+
+Theme Settings → Performance has four switches, all off by default:
+
+- **Preload the body font.** Preloads the body font's `400.woff2`, so the Typography page needs a body font and that file.
+- **Remove jQuery from the front end.** Scripts that depend on jQuery stop loading, so check the plugins first.
+- **Remove the wp-embed script.** Posts from other WordPress sites still embed, but don't resize.
+- **Remove the block library styles.** The theme only styles Button, Quote, List and Table itself. Columns, Cover, Gallery and similar blocks lose their layout CSS.
+
+### Redirects
+
+Theme Settings → Redirects takes an old path and a new one, which can be a path on this site or a full URL, and a 301 or 302. Paths match without regard to case or a trailing slash, and the visitor's query string is kept unless the target has its own. Rows with an empty field are dropped on save, and a path sent to itself is refused. Chains aren't followed or checked, so point each old path straight at its final address.
+
 ### Light and dark mode
 
 The switch in the navbar sets Bootstrap's `data-bs-theme` attribute on `<html>`. Visitors start on Auto, which follows their system setting, and a choice is remembered in `localStorage`. An inline script in the head applies it before the page paints, so there's no flash of the light theme. The switch lives in `resources/js/color-mode.js`. Anything styled with Bootstrap's CSS variables and `-body` utilities follows the mode; hard-coded colours don't.
@@ -179,7 +220,7 @@ For visitors in the EU and UK, tick **Consent Mode** on the same page. The tag t
 
 ### Translations
 
-Strings use the theme's text domain, which the rename script sets. With [WP-CLI](https://wp-cli.org/) installed:
+Strings use the theme's text domain, which the rename script changes from `sage` to your slug. With [WP-CLI](https://wp-cli.org/) installed:
 
 ```sh
 npm run translate           # create the .pot file and update the .po files
@@ -192,6 +233,7 @@ npm run translate:compile   # build the .mo and JSON files
 app/
   content.php            post types, taxonomies, block registration
   filters.php            WordPress filters, including menu classes and head cleanup
+  options.php            custom code, fonts, performance switches, redirects
   setup.php              theme supports, menus, image sizes, sidebars, editor assets, analytics, site settings
   Providers/             Acorn service providers
   View/Composers/        data passed to Blade views

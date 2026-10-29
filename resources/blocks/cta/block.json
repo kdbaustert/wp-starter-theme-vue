@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "sage/cta",
+  "title": "Call to action",
+  "category": "design",
+  "icon": "megaphone",
+  "description": "A coloured band with a heading, a line of text and a button.",
+  "textdomain": "sage",
+  "attributes": {
+    "heading": {
+      "type": "string",
+      "default": ""
+    },
+    "text": {
+      "type": "string",
+      "default": ""
+    },
+    "buttonLabel": {
+      "type": "string",
+      "default": ""
+    },
+    "buttonUrl": {
+      "type": "string",
+      "default": ""
+    },
+    "variant": {
+      "type": "string",
+      "enum": ["primary", "secondary", "dark", "light"],
+      "default": "primary"
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": ["full"]
+  }
+}

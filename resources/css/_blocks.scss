@@ -59,3 +59,20 @@
     }
   }
 }
+
+// Hero and call to action bands. They use the .hero and .cta classes the
+// blocks add rather than .wp-block-<namespace>-hero, which changes with the
+// block namespace the rename script sets.
+.hero,
+.cta {
+  padding: ($spacer * 4) $spacer;
+  text-align: center;
+}
+
+.hero .hero-heading {
+  @extend .display-5;
+}
+
+.hero .hero-text {
+  @extend .lead;
+}
