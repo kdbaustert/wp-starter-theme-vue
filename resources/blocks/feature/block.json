@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "sage/feature",
+  "title": "Feature",
+  "category": "design",
+  "icon": "star-filled",
+  "description": "An icon, a heading and some text.",
+  "textdomain": "sage",
+  "parent": ["sage/feature-list"],
+  "attributes": {
+    "icon": {
+      "type": "string",
+      "enum": [
+        "star-filled",
+        "yes-alt",
+        "heart",
+        "lightbulb",
+        "shield",
+        "lock",
+        "performance",
+        "clock",
+        "chart-bar",
+        "money-alt",
+        "cart",
+        "admin-users",
+        "groups",
+        "location",
+        "phone",
+        "email",
+        "smartphone",
+        "admin-tools",
+        "admin-site",
+        "awards"
+      ],
+      "default": "star-filled"
+    },
+    "heading": {
+      "type": "string",
+      "default": ""
+    },
+    "text": {
+      "type": "string",
+      "default": ""
+    }
+  },
+  "supports": {
+    "html": false
+  },
+  "editorStyle": "dashicons"
+}

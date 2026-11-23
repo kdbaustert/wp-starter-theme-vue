@@ -66,6 +66,22 @@ class App extends Composer
     }
 
     /**
+     * Retrieve the notice bar set under Theme Settings > Site Settings, or an
+     * empty array when it has no message. The id changes with the content, so
+     * visitors who closed the old notice see a new one.
+     */
+    public function notice(): array
+    {
+        $notice = (array) get_option('site_notice');
+
+        if (empty($notice['text'])) {
+            return [];
+        }
+
+        return $notice + ['id' => substr(md5(wp_json_encode($notice)), 0, 8)];
+    }
+
+    /**
      * Retrieve the footer text, with {year} replaced by the current year.
      */
     public function footerText(): string

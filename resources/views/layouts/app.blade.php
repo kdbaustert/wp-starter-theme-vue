@@ -17,6 +17,8 @@
         {{ __('Skip to content', 'sage') }}
       </a>
 
+      @include('sections.notice')
+
       @include('sections.header')
 
       <div class="container py-5">

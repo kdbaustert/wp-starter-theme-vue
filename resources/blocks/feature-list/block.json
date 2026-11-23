@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "sage/feature-list",
+  "title": "Feature list",
+  "category": "design",
+  "icon": "screenoptions",
+  "description": "A grid of features, each with an icon, a heading and some text.",
+  "textdomain": "sage",
+  "attributes": {
+    "columns": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 4,
+      "default": 3
+    }
+  },
+  "supports": {
+    "html": false,
+    "align": ["wide", "full"]
+  }
+}

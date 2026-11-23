@@ -76,3 +76,13 @@
 .hero .hero-text {
   @extend .lead;
 }
+
+// Dashicons are a 20px icon font sized by width, height and font-size
+// together.
+.feature .feature-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: $spacer;
+  font-size: 2.5rem;
+  color: var(--bs-primary);
+}

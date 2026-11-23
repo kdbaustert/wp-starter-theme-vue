@@ -556,6 +556,20 @@ add_action('init', function () {
         },
     ]);
 
+    register_setting('site_settings', 'site_notice', [
+        'type' => 'array',
+        'default' => [],
+        'sanitize_callback' => function ($value) {
+            $value = (array) $value;
+
+            return array_filter([
+                'text' => sanitize_text_field($value['text'] ?? ''),
+                'url' => esc_url_raw($value['url'] ?? ''),
+                'label' => sanitize_text_field($value['label'] ?? ''),
+            ]);
+        },
+    ]);
+
     register_setting('site_settings', 'site_comments', [
         'type' => 'boolean',
         'default' => true,
@@ -619,6 +633,9 @@ add_action('admin_menu', function () {
  */
 add_action('admin_init', function () {
     add_settings_section('site_settings_footer', __('Footer', 'sage'), '', 'site-settings');
+    add_settings_section('site_settings_notice', __('Notice bar', 'sage'), function () {
+        echo '<p>'.esc_html__('Shown above the header on every page until a visitor closes it. Changing it shows it to them again.', 'sage').'</p>';
+    }, 'site-settings');
     add_settings_section('site_settings_contact', __('Contact details', 'sage'), function () {
         echo '<p>'.esc_html__('Shown in the footer and given to search engines on the front page.', 'sage').'</p>';
     }, 'site-settings');
@@ -637,6 +654,32 @@ add_action('admin_init', function () {
             esc_html__('{year} becomes the current year. Leave it empty for the placeholder text.', 'sage')
         );
     }, 'site-settings', 'site_settings_footer', ['label_for' => 'site_footer_text']);
+
+    $notice = (array) get_option('site_notice');
+
+    add_settings_field('site_notice_text', __('Message', 'sage'), function () use ($notice) {
+        printf(
+            '<input name="site_notice[text]" id="site_notice_text" type="text" class="large-text" value="%s">'
+            .'<p class="description">%s</p>',
+            esc_attr($notice['text'] ?? ''),
+            esc_html__('Leave it empty to hide the bar.', 'sage')
+        );
+    }, 'site-settings', 'site_settings_notice', ['label_for' => 'site_notice_text']);
+
+    add_settings_field('site_notice_url', __('Link', 'sage'), function () use ($notice) {
+        printf(
+            '<input name="site_notice[url]" id="site_notice_url" type="url" class="regular-text code" value="%s" placeholder="https://">',
+            esc_attr($notice['url'] ?? '')
+        );
+    }, 'site-settings', 'site_settings_notice', ['label_for' => 'site_notice_url']);
+
+    add_settings_field('site_notice_label', __('Link text', 'sage'), function () use ($notice) {
+        printf(
+            '<input name="site_notice[label]" id="site_notice_label" type="text" class="regular-text" value="%s" placeholder="%s">',
+            esc_attr($notice['label'] ?? ''),
+            esc_attr__('Find out more', 'sage')
+        );
+    }, 'site-settings', 'site_settings_notice', ['label_for' => 'site_notice_label']);
 
     $contact = (array) get_option('site_contact');
 

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "sage/social-links",
+  "title": "Social links",
+  "category": "widgets",
+  "icon": "share",
+  "description": "Links to the social profiles set under Theme Settings > Site Settings.",
+  "textdomain": "sage",
+  "supports": {
+    "html": false
+  }
+}
